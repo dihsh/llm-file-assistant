@@ -2,21 +2,25 @@
 
 **Author:** Divyansh Sharma ([@dihsh](https://github.com/dihsh))  
 **Project Repository:** [https://github.com/dihsh/llm-file-assistant](https://github.com/dihsh/llm-file-assistant)  
+**Primary LLM Engine:** Google Gemini (Free Tier API via Google AI Studio)  
 
 ---
 
 ## Overview
 
-The **LLM File Assistant** is an agentic Python system that bridges Large Language Models with local document storage through **Structured Function Calling (Tool Use)**. Rather than relying on static prompts or ungrounded generative guesses, this project empowers an LLM to inspect directories, extract text from multi-format resume documents (`.pdf`, `.docx`, `.txt`), execute case-insensitive contextual searches, and programmatically write candidate summaries to disk.
+The **LLM File Assistant** is an agentic Python system that bridges Large Language Models with local document storage through **Structured Function Calling (Tool Use)**. Powered by the **free Google Gemini API** (`gemini-2.5-flash`), this project empowers an LLM to inspect directories, extract text from multi-format resume documents (`.pdf`, `.docx`, `.txt`), execute case-insensitive contextual searches, and programmatically write candidate summaries to disk.
+
+By leveraging Google Gemini's generous free tier, this project provides a 100% free-to-run, enterprise-grade tool-calling architecture without requiring paid API subscriptions.
 
 ---
 
-## Learning Objectives
+## Key Features & Learning Objectives
 
-1. **LLM Function Calling / Tool Use**: Implement structured JSON schemas (`TOOLS_SCHEMA`) and handle the cyclical tool-calling execution loop (User Query → Model Tool Decision → Tool Execution → Result Return → Final Synthesis).
-2. **Structured Tool Interfaces**: Design robust, type-hinted Python functions returning standardized dictionaries with error handling and metadata.
-3. **File I/O Operations**: Programmatically handle file discovery, directory creation, and disk writes.
-4. **Document Parsing & Validation**: Extract and validate textual content across binary PDF (`pypdf`), Microsoft Word (`python-docx`), and plain text (`txt`) files.
+1. **LLM Function Calling / Tool Use**: Implement structured JSON schemas (`TOOLS_SCHEMA`) and handle the cyclical tool-calling execution loop (User Query → Gemini Tool Decision → Tool Execution → Result Return → Final Synthesis).
+2. **Powered by Gemini Free API**: Seamlessly integrates with Google AI Studio's free Gemini API key (`GEMINI_API_KEY`) and supports OpenAI / local models as well.
+3. **Structured Tool Interfaces**: Robust, type-hinted Python functions returning standardized dictionaries with error handling and metadata.
+4. **File I/O Operations**: Programmatic directory discovery, safe parent directory creation, and UTF-8 disk writes.
+5. **Multi-Format Document Parsing**: Text extraction across binary PDF (`pypdf`), Microsoft Word (`python-docx`), and plain text (`txt`) files.
 
 ---
 
@@ -30,7 +34,8 @@ The **LLM File Assistant** is an agentic Python system that bridges Large Langua
                                     |
                                     v
 +-------------------------------------------------------------------------+
-|                          LLM AGENTIC ENGINE                             |
+|                      GOOGLE GEMINI 2.5 FLASH                            |
+|             (Google AI Studio Free Tier via GEMINI_API_KEY)             |
 |               Analyzes intent against `TOOLS_SCHEMA`                    |
 +-------------------------------------------------------------------------+
                                     |
@@ -53,7 +58,7 @@ The **LLM File Assistant** is an agentic Python system that bridges Large Langua
                                     v
 +-------------------------------------------------------------------------+
 |                          FINAL SYNTHESIS                                |
-|        LLM summarizes qualified candidates with factual evidence        |
+|     Gemini summarizes qualified candidates with factual evidence        |
 +-------------------------------------------------------------------------+
 ```
 
@@ -87,18 +92,15 @@ The **LLM File Assistant** is an agentic Python system that bridges Large Langua
 
 ## Part B: LLM Integration (`llm_file_assistant.py`)
 
-`llm_file_assistant.py` binds `fs_tools.py` with an LLM agent:
+`llm_file_assistant.py` binds `fs_tools.py` with the LLM agent:
 
-- **Multi-Provider Support:**
-  - **OpenAI:** Uses `OPENAI_API_KEY` (e.g. `gpt-4o-mini`, `gpt-4o`).
-  - **Google Gemini:** Supports `GEMINI_API_KEY` through the OpenAI-compatible Gemini endpoint (`gemini-2.5-flash`).
-  - **Local Models:** Connects to Ollama / vLLM / LocalAI via `OPENAI_BASE_URL`.
-  - **Autonomous Engine / Offline Demo Mode:** If no API key is configured or when running `--demo`, the assistant uses a deterministic tool execution engine to demonstrate tool calling without requiring third-party API fees.
-- **Agent Loop:**
-  - Manages conversation state.
-  - Automatically invokes tools requested by the model.
-  - Feeds structured results back into the context.
-  - Synthesizes user-friendly answers.
+- **Primary Engine: Google Gemini Free API**:
+  - Connects using `GEMINI_API_KEY` from Google AI Studio.
+  - Employs `gemini-2.5-flash` for high-speed, cost-free function calling.
+- **Secondary Engine: OpenAI & Local Models**:
+  - Supports `OPENAI_API_KEY` or custom local endpoints like Ollama (`OPENAI_BASE_URL`).
+- **Autonomous Engine / Offline Demo Mode**:
+  - Includes a deterministic function-calling engine for automated testing, grading, and recording the demo video (`--demo`) with or without an active internet connection.
 
 ---
 
@@ -119,21 +121,16 @@ The repository includes 8 diverse, realistic synthetic resumes across multiple e
 
 ---
 
-## Setup & Installation
+## Setup & Free Gemini API Configuration
 
-### 1. Prerequisites
-- Python 3.10+ (or Python managed via `uv`)
-- Git
-
-### 2. Clone the Repository
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/dihsh/llm-file-assistant.git
 cd llm-file-assistant
 ```
 
-### 3. Setup Virtual Environment & Install Dependencies
+### 2. Setup Virtual Environment & Install Dependencies
 ```bash
-# Using standard Python venv
 python -m venv .venv
 source .venv/bin/activate  # On Linux/macOS
 .venv\Scripts\activate     # On Windows
@@ -141,18 +138,19 @@ source .venv/bin/activate  # On Linux/macOS
 pip install -r requirements.txt
 ```
 
-*(Optional) Using `uv`:*
-```bash
-uv venv
-uv pip install -r requirements.txt
-```
+### 3. Configure Free Gemini API Key
+1. Get your free API key at **[https://aistudio.google.com/apikey](https://aistudio.google.com/apikey)** (no credit card required).
+2. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+3. Set your free Gemini API key in `.env`:
+   ```ini
+   GEMINI_API_KEY=your_gemini_free_api_key_here
+   OPENAI_MODEL=gemini-2.5-flash
+   ```
 
-### 4. Configure Environment Variables (Optional)
-Copy `.env.example` to `.env` and insert your API key:
-```bash
-cp .env.example .env
-```
-*(If omitted, the assistant seamlessly runs in Autonomous Tool-Calling Mode).*
+*(Note: If you run without an API key, the assistant automatically runs in Autonomous Function-Calling Simulator Mode).*
 
 ---
 
@@ -187,7 +185,7 @@ python llm_file_assistant.py
 
 ## Demo Video Script
 
-See [DEMO_SCRIPT.md](file:///D:/projects/llm-file-assistant/DEMO_SCRIPT.md) for the 2-3 minute presentation script, narration essay, and screen recording guide.
+See [DEMO_SCRIPT.md](DEMO_SCRIPT.md) for the 2-3 minute presentation script, narration essay, and screen recording guide tailored for Divyansh Sharma.
 
 ---
 
@@ -196,11 +194,11 @@ See [DEMO_SCRIPT.md](file:///D:/projects/llm-file-assistant/DEMO_SCRIPT.md) for 
 ```
 llm-file-assistant/
 |-- fs_tools.py             # Part A: Core file system tools & schemas
-|-- llm_file_assistant.py   # Part B: LLM function calling agent
+|-- llm_file_assistant.py   # Part B: LLM function calling agent (Gemini / OpenAI)
 |-- generate_resumes.py     # Programmatic generator for dummy resume files
 |-- test_fs_tools.py        # Automated unit test suite (14 test cases)
 |-- requirements.txt        # Python package dependencies
-|-- .env.example            # Environment variables template
+|-- .env.example            # Environment variables template (Gemini / OpenAI)
 |-- .gitignore              # Git ignore rules
 |-- DEMO_SCRIPT.md          # 2-3 minute video presentation script & narration
 |-- README.md               # Complete project documentation
