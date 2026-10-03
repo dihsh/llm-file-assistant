@@ -1,0 +1,22 @@
+=====================================================
+CANDIDATE SUMMARY: JOHN DOE
+Source Document: resume_john_doe.pdf
+=====================================================
+
+PROFILE OVERVIEW:
+Senior Backend Engineer with 7+ years of experience architecting
+scalable distributed systems and microservices using Python & FastAPI.
+
+KEY TECHNICAL SKILLS:
+- Python (FastAPI, Django, Flask)
+- PostgreSQL, Redis, Kafka, Celery
+- Docker, Kubernetes, AWS
+
+RECENT EXPERIENCE:
+- Staff Python Engineer at Apex Cloud Systems: Designed event pipelines
+  handling 10M+ daily events with Redis and Kafka.
+- Backend Software Developer at FinTech Nexus: High-availability payment APIs.
+
+EDUCATION:
+B.S. in Computer Science - UC Berkeley
+=====================================================
