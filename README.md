@@ -200,7 +200,7 @@ llm-file-assistant/
 |-- requirements.txt        # Python package dependencies
 |-- .env.example            # Environment variables template (Gemini / OpenAI)
 |-- .gitignore              # Git ignore rules
-|-- DEMO_SCRIPT.md          # 2-3 minute video presentation script & narration
+|-- DEMO_SCRIPT.md         
 |-- README.md               # Complete project documentation
 |-- resumes/                # Sample resumes dataset (PDF, DOCX, TXT)
 |   |-- resume_john_doe.pdf
