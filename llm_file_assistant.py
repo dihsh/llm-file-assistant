@@ -1,9 +1,9 @@
 ﻿"""
 llm_file_assistant.py - LLM Agent with Function Calling for File Operations
 
-Integrates core file system tools (fs_tools) with LLM function calling (OpenAI,
-Gemini, or local OpenAI-compatible models). Handles the end-to-end tool-calling
-lifecycle: user query -> model decision -> tool execution -> model synthesis.
+Integrates core file system tools (fs_tools) with Google Gemini (Free API Key)
+or OpenAI models. Handles the end-to-end tool-calling lifecycle:
+User Query -> Gemini Tool Decision -> Python Tool Execution -> Gemini Synthesis.
 """
 
 import os
@@ -28,7 +28,7 @@ from fs_tools import (
 load_dotenv()
 
 
-SYSTEM_PROMPT = """You are an intelligent HR & Document Operations AI Assistant.
+SYSTEM_PROMPT = """You are an intelligent HR & Document Operations AI Assistant powered by Google Gemini.
 You have access to a suite of file system tools to inspect directories, read resumes (PDF, DOCX, TXT), search for keywords/skills within files, and write summary reports.
 
 GUIDELINES:
@@ -43,21 +43,21 @@ GUIDELINES:
 class LLMFileAssistant:
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None, base_url: Optional[str] = None):
         """
-        Initialize the LLM Assistant. Supports OpenAI, Gemini, or local endpoints.
+        Initialize the LLM Assistant. Supports Google Gemini (free API key) or OpenAI.
         Falls back gracefully to an autonomous function-calling engine if no API key is detected.
         """
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY") or os.getenv("GEMINI_API_KEY")
+        self.api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("OPENAI_API_KEY")
         self.base_url = base_url or os.getenv("OPENAI_BASE_URL")
         self.model = model
 
         self.is_gemini = False
-        if not self.base_url and os.getenv("GEMINI_API_KEY") and not os.getenv("OPENAI_API_KEY"):
-            # Gemini OpenAI-compatible endpoint
+        # If Gemini key is set and no OpenAI custom URL is forced, use Gemini OpenAI endpoint
+        if (os.getenv("GEMINI_API_KEY") or (self.api_key and self.api_key.startswith("AQ."))) and not self.base_url:
             self.base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
-            self.model = self.model or "gemini-2.5-flash"
+            self.model = self.model or os.getenv("OPENAI_MODEL") or "gemini-2.5-flash"
             self.is_gemini = True
         else:
-            self.model = self.model or "gpt-4o-mini"
+            self.model = self.model or os.getenv("OPENAI_MODEL") or "gpt-4o-mini"
 
         self.client = None
         if self.api_key:
@@ -65,7 +65,7 @@ class LLMFileAssistant:
                 from openai import OpenAI
                 self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
             except Exception as e:
-                print(f"[WARNING] Could not initialize OpenAI client: {e}")
+                print(f"[WARNING] Could not initialize OpenAI/Gemini client: {e}")
 
         self.messages: List[Dict[str, Any]] = [
             {"role": "system", "content": SYSTEM_PROMPT}
@@ -94,6 +94,9 @@ class LLMFileAssistant:
             print("[INFO] No active API key found in environment. Running in Autonomous Function-Calling Simulator Mode.")
             return self._run_simulated_tool_loop(user_query)
 
+        engine_name = "Google Gemini (" + self.model + ")" if self.is_gemini else f"OpenAI ({self.model})"
+        print(f"[ENGINE]: Active Live Connection -> {engine_name}")
+
         self.messages.append({"role": "user", "content": user_query})
 
         max_iterations = 10
@@ -114,15 +117,33 @@ class LLMFileAssistant:
                 return self._run_simulated_tool_loop(user_query)
 
             response_msg = response.choices[0].message
-            self.messages.append(response_msg.model_dump())
 
             # Check if LLM requested any tool calls
             tool_calls = response_msg.tool_calls
             if not tool_calls:
                 # LLM finished and returned a final text response
+                self.messages.append({"role": "assistant", "content": response_msg.content or ""})
                 final_answer = response_msg.content or "Done."
                 print(f"\n[ASSISTANT FINAL ANSWER]:\n{final_answer}\n")
                 return final_answer
+
+            # Format assistant message cleanly for Gemini & OpenAI compatibility
+            cleaned_tool_calls = []
+            for tc in tool_calls:
+                cleaned_tool_calls.append({
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {
+                        "name": tc.function.name,
+                        "arguments": tc.function.arguments,
+                    }
+                })
+
+            self.messages.append({
+                "role": "assistant",
+                "content": response_msg.content or "",
+                "tool_calls": cleaned_tool_calls,
+            })
 
             # Handle each tool call
             for tool_call in tool_calls:
